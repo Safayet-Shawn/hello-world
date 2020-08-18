@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo"
 )
 type Register struct{
-	ID       int `gorm:"primary_key;AUTO_INCRMENET"json:"Id"`
+	ID       int `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	Email string `gorm:"type:Varchar(100)" json:"Email,omitempty"`
 	Name  string `gorm:"type:varchar(50)"json:"Name,omitempty"`
 	Phone string `gorm:"varchar(20);unique"json:"Phone,omitempty"`
@@ -29,9 +29,9 @@ func initDb(){
 		fmt.Println(err)
 		panic("failed to connect Database")
 	}
-	db.Exec("CREATE DATABASE loginreg")
+	db.Exec("CREATE DATABASE loginregs")
 	
-	db.Exec("use loginreg")
+	db.Exec("use loginregs")
 	db.AutoMigrate(&Login{},&Register{})
 }
 func regUser(c echo.Context)error{
