@@ -17,9 +17,9 @@ type Register struct{
 	Password  string `gorm:"varchar(100)"json:"Password,omitempty"`
 }
 type Login struct{
-	ID       int64 `json:"Id"`
-	Email   string `json:"email"`
-	Password   string `json:"password"`
+	ID       int64 `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	Email   string `gorm:"type:Varchar(100)" json:"Email,omitempty"`
+	Password   string `gorm:"varchar(100)"json:"Password,omitempty"`
 }
  var db *gorm.DB
 func initDb(){
