@@ -2,60 +2,75 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"fmt"
+	"log"
 	"net/http"
+	// "time"//
 	"github.com/jinzhu/gorm"
-	_"github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/labstack/echo"
 )
-type Register struct{
-	ID       int `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	Email string `gorm:"type:Varchar(100)" json:"Email,omitempty"`
-	Name  string `gorm:"type:varchar(50)"json:"Name,omitempty"`
-	Phone string `gorm:"varchar(20);unique"json:"Phone,omitempty"`
-	Password  string `gorm:"varchar(100)"json:"Password,omitempty"`
+
+//Register struct//
+type Register struct {
+	gorm.Model
+	// ID       int    `json:"id" gorm:"primary_key;AUTO_INCREMENT;"`
+	Email    string `json:"Email,omitempty" gorm:"type:varchar(100);" `
+	Name     string `json:"Name,omitempty" gorm:"type:varchar(50);" `
+	Phone    string `json:"Phone,omitempty" gorm:"varchar(20);unique;" `
+	Password string `json:"Password,omitempty" gorm:"varchar(100);" `
 }
-type Login struct{
-	ID       int64 `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	Email   string `gorm:"type:Varchar(100)" json:"Email,omitempty"`
-	Password   string `gorm:"varchar(100)"json:"Password,omitempty"`
+//Model struct//
+// type Model struct {
+//   Id        uint `gorm:"primary_key"`
+//   CreatedAt time.Time
+//   UpdatedAt time.Time
+//   DeletedAt *time.Time
+// }
+//Login struct//
+type Login struct {
+	gorm.Model
+	// LID       int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT;"`
+	Email    string `json:"Email,omitempty" gorm:"type:Varchar(100);" `
+	Password string `json:"Password,omitempty" gorm:"varchar(100);"`
 }
- var db *gorm.DB
-func initDb(){
+
+var db *gorm.DB
+
+func initDb() {
 	var err error
-	db,err:= gorm.Open("mysql","root:itsshawn@007@@tcp(localhost:3306)/?parseTime=True")
-	if err !=nil{
+	db, err := gorm.Open("mysql", "root:itsshawn@007@@tcp(localhost:3306)/?parseTime=True")
+	if err != nil {
 		fmt.Println(err)
 		panic("failed to connect Database")
 	}
-	db.Exec("CREATE DATABASE loginregs")
-	
-	db.Exec("use loginregs")
-	db.AutoMigrate(&Login{},&Register{})
+	db.Exec("CREATE DATABASE lgrg")
+
+	db.Exec("use lgrg")
+	db.AutoMigrate(&Login{}, &Register{})
 }
-func regUser(c echo.Context)error{
-	var reg Register
+func regUser(c echo.Context) error {
+	reg :=new(Register)
 	defer c.Request().Body.Close()
-	err:=json.NewDecoder(c.Request().Body).Decode(&reg)
-	if err !=nil{
-		log.Printf("failed processing request: %s",err)
+	err := json.NewDecoder(c.Request().Body).Decode(&reg)
+	if err != nil {
+		log.Printf("failed processing request: %s", err)
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
-	log.Printf("Register : %#v",reg)
+	log.Printf("Register : %#v", reg)
+	
+	// json.NewEncoder(c.Request()).Encode(reg)
 	return c.JSON(http.StatusCreated, reg)
-
 	// return c.String(http.StatusOK,"You are registered")
 }
 func main() {
-		initDb()
+	initDb()
 	e := echo.New()
 
 	//router
-	e.POST("/register",regUser)
+	e.POST("/register", regUser)
 	// e.POST("/login_user", loginUser)
 	// e.GET("/user/:id", setUser)
-	// e.GET("/users", all_User) 
+	// e.GET("/users", all_User)
 	e.Logger.Fatal(e.Start(":8080"))
 }
-
