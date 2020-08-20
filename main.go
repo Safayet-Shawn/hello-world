@@ -20,13 +20,7 @@ type Register struct {
 	Phone    string `json:"Phone,omitempty" gorm:"varchar(20);unique;" `
 	Password string `json:"Password,omitempty" gorm:"varchar(100);" `
 }
-//Model struct//
-// type Model struct {
-//   Id        uint `gorm:"primary_key"`
-//   CreatedAt time.Time
-//   UpdatedAt time.Time
-//   DeletedAt *time.Time
-// }
+
 //Login struct//
 type Login struct {
 	gorm.Model
@@ -59,7 +53,6 @@ func regUser(c echo.Context) error {
 	}
 	log.Printf("Register : %#v", reg)
 	
-	// json.NewEncoder(c.Request()).Encode(reg)
 	return c.JSON(http.StatusCreated, reg)
 	// return c.String(http.StatusOK,"You are registered")
 }
