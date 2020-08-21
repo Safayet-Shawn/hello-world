@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	// "time"//
+	"time"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/labstack/echo"
+	"github.com/dgrijalva/jwt-go"
 )
 
 //Register struct//
@@ -59,13 +60,42 @@ func regUser(c echo.Context) error {
 	return c.JSON(http.StatusCreated, reg)
 	// return c.String(http.StatusOK,"You are registered")
 }
+func loginUser(c echo.Context)error{
+	lgp :=new (Register)
+	Email:=c.QueryParam("email")
+	Password:=c.QueryParam("password")
+	err:=db.Where("email = ? AND password= ? ", Email,Password).First(&lgp).Error
+	if err!=nil{
+		log.Println(err)
+	} else{
+	//create tooken
+	tk:=jwt.New(jwt.SigningMethodHS256)
+	claims:=tk.Claims.(jwt.MapClaims)
+	claims["name"]=lgp.Name
+	claims["email"]=lgp.Email
+	claims["phone"]=lgp.Phone
+	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+	
+	tkn, err := tk.SignedString([]byte("secret"))
+        if err != nil {
+            return err
+        }
+        return c.JSON(http.StatusOK, map[string]string{
+
+            "token": tkn,
+        })
+	// fmt.Println(lgp.Email,lgp.Password)
+	// return c.JSON(http.StatusCreated, lgp)
+}
+	return echo.ErrUnauthorized
+}
 func main() {
 	initDb()
 	e := echo.New()
 
 	//router
 	e.POST("/register", regUser)
-	// e.POST("/login_user", loginUser)
+	e.GET("/login_user", loginUser)
 	// e.GET("/user/:id", setUser)
 	// e.GET("/users", all_User)
 	e.Logger.Fatal(e.Start(":8080"))
