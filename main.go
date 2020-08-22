@@ -10,6 +10,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/labstack/echo"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/labstack/echo/middleware"
 )
 
 //Register struct//
@@ -22,27 +23,21 @@ type Register struct {
 	Password string `json:"password,omitempty" gorm:"type:varchar(100);" `
 }
 
-//Login struct//
-type Login struct {
-	// gorm.Model
-	 LID       int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT;"`
-	Email    string `json:"Email,omitempty" gorm:"type:varchar(100);" `
-	Password string `json:"Password,omitempty" gorm:"type:varchar(100);"`
-}
+
 
 var db *gorm.DB
 
 func initDb() {
 	var err error
-	db, err = gorm.Open("mysql", "root:itsshawn@007@@tcp(localhost:3306)/logrreg?parseTime=True")
+	db, err = gorm.Open("mysql", "root:itsshawn@007@@tcp(localhost:3306)/sign?parseTime=True")
 	if err != nil {
 		fmt.Println(err)
 		panic("failed to connect Database")
 	}
 	 // db.Exec("CREATE DATABASE signn")
 
-	 db.Exec("use logrreg")
-	db.AutoMigrate(&Login{}, &Register{})
+	 db.Exec("use sign")
+	db.AutoMigrate( &Register{})
 }
 func regUser(c echo.Context) error {
 	reg :=new(Register)
@@ -89,14 +84,27 @@ func loginUser(c echo.Context)error{
 }
 	return echo.ErrUnauthorized
 }
+func jwtLogin(c echo.Context)error{
+	return c.String(http.StatusOK,"You are Logged in sucessfully !")
+}
 func main() {
 	initDb()
 	e := echo.New()
 
+	//jwt group//
+	jwtGroup:=e.Group("/jwt")
+		//middleware//
+	jwtGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
+		SigningMethod:"HS256",
+		SigningKey: []byte("secret"),
+	}))
+
+
+	jwtGroup.GET("/login",jwtLogin)
+
 	//router
 	e.POST("/register", regUser)
-	e.GET("/login_user", loginUser)
-	// e.GET("/user/:id", setUser)
-	// e.GET("/users", all_User)
+	e.GET("/login_tkn", loginUser)
+	
 	e.Logger.Fatal(e.Start(":8080"))
 }
