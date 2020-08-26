@@ -29,14 +29,14 @@ var db *gorm.DB
 
 func initDb() {
 	var err error
-	db, err = gorm.Open("mysql", "root:itsshawn@007@@tcp(localhost:3306)/sign?parseTime=True")
+	db, err = gorm.Open("mysql", "root:itsshawn@007@@tcp(localhost:3306)/signs?parseTime=True")
 	if err != nil {
 		fmt.Println(err)
 		panic("failed to connect Database")
 	}
-	// db.Exec("CREATE DATABASE signn")
+	// db.Exec("CREATE DATABASE signs")
 
-	db.Exec("use sign")
+	db.Exec("use signs")
 	db.AutoMigrate(&Register{})
 }
 func regUser(c echo.Context) error {
@@ -48,7 +48,7 @@ func regUser(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 	log.Printf("Register : %#v", reg)
-	hash, err := bcrypt.GenerateFromPassword([]byte(reg.Password), bcrypt.MinCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(reg.Password), bcrypt.DefaultCost)
 	reg.Password = string(hash)
 	if err != nil {
 		log.Println(err)
@@ -65,36 +65,36 @@ func loginUser(c echo.Context) error {
 	Email := c.QueryParam("email")
 	Password := c.QueryParam("password")
 
+	err := db.Where("email = ? AND password= ? ", Email, Password).First(&lgp).Error
 	err1 := bcrypt.CompareHashAndPassword([]byte(lgp.Password), []byte(Password))
 	if err1 != nil {
 		log.Println(err1)
 	}
-	// Password=lgp.Password
-	err := db.Where("email = ? AND password= ? ", Email, Password).First(&lgp).Error
-
+	lgp.Password = Password
 	if err != nil {
 		log.Println(err)
+	} else {
+
+		//create tooken
+		tk := jwt.New(jwt.SigningMethodHS256)
+		claims := tk.Claims.(jwt.MapClaims)
+		claims["name"] = lgp.Name
+		claims["email"] = lgp.Email
+		claims["phone"] = lgp.Phone
+		claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+
+		tkn, err := tk.SignedString([]byte("secret"))
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, map[string]string{
+
+			"token": tkn,
+		})
+		// fmt.Println(lgp.Email,lgp.Password)
+		// return c.JSON(http.StatusCreated, lgp)
 	}
-	//create tooken
-	tk := jwt.New(jwt.SigningMethodHS256)
-	claims := tk.Claims.(jwt.MapClaims)
-	claims["name"] = lgp.Name
-	claims["email"] = lgp.Email
-	claims["phone"] = lgp.Phone
-	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
-
-	tkn, err := tk.SignedString([]byte("secret"))
-	if err != nil {
-		return err
-	}
-	return c.JSON(http.StatusOK, map[string]string{
-
-		"token": tkn,
-	})
-	// fmt.Println(lgp.Email,lgp.Password)
-	// return c.JSON(http.StatusCreated, lgp)
-
-	// return echo.ErrUnauthorized
+	return echo.ErrUnauthorized
 }
 
 //User function
@@ -119,6 +119,7 @@ func userByID(c echo.Context) error {
 
 }
 func jwtLogin(c echo.Context) error {
+
 	return c.String(http.StatusOK, "You are Logged in sucessfully !")
 }
 func main() {
@@ -126,21 +127,21 @@ func main() {
 	e := echo.New()
 
 	//jwt group//
-	jwtGroup := e.Group("/jwt")
+	jwtGroup := e.Group("api/v1/user/jwt")
 	//middleware//
 	jwtGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
 		SigningMethod: "HS256",
 		SigningKey:    []byte("secret"),
 	}))
 
-	jwtGroup.GET("/login", jwtLogin)
+	jwtGroup.POST("/login", jwtLogin)
 
 	//router
-	e.POST("/register", regUser)
-	e.POST("/login_tkn", loginUser)
+	e.POST("api/v1/user/register", regUser)
+	e.POST("api/v1/user/login_tkn", loginUser)
 
-	e.GET("/user", User)
-	e.GET("/userid", userByID)
+	e.GET("api/v1/auth/user", User)
+	e.GET("api/v1/auth/userid", userByID)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
