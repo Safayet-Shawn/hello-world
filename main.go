@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"sync"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -183,7 +185,10 @@ func whoAmI(c echo.Context) error {
 func main() {
 	initDb()
 	e := echo.New()
+	wg := new(sync.WaitGroup)
 
+	// add two goroutines to `wg` WaitGroup
+	wg.Add(3)
 	//jwt group//
 	jwtGroup := e.Group("api/v1/user/")
 	//middleware//
@@ -200,6 +205,22 @@ func main() {
 
 	e.GET("api/v1/auth/users", User)
 	e.GET("api/v1/auth/userid", userByID)
+	go func() {
 
-	e.Logger.Fatal(e.Start(":8080"))
+		e.Logger.Fatal(e.Start(":8080"))
+		wg.Done()
+	}()
+	go func() {
+
+		e.Logger.Fatal(e.Start(":8081"))
+		wg.Done()
+	}()
+	go func() {
+
+		e.Logger.Fatal(e.Start(":8082"))
+		wg.Done()
+	}()
+
+	wg.Wait()
+
 }
