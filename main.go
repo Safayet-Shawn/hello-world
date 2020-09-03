@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -52,6 +53,16 @@ func initDb() {
 	db.AutoMigrate(&Register{})
 }
 func regUser(c echo.Context) error {
+	resp, err1 := http.Get("localhost:8080/api/v1/user/register")
+	if err1 != nil {
+		log.Fatalln(err1)
+	}
+	defer resp.Body.Close()
+	body, err2 := ioutil.ReadAll(resp.Body)
+	if err2 != nil {
+		log.Fatalln(err2)
+	}
+	log.Println(string(body))
 	reg := new(Register)
 	defer c.Request().Body.Close()
 	err := json.NewDecoder(c.Request().Body).Decode(&reg)
@@ -73,6 +84,16 @@ func regUser(c echo.Context) error {
 	return c.JSON(http.StatusCreated, &reg)
 }
 func loginUser(c echo.Context) error {
+	resp, err4 := http.Get("localhost:8080/api/v1/user/login_tkn")
+	if err4 != nil {
+		log.Fatalln(err4)
+	}
+	defer resp.Body.Close()
+	body, err2 := ioutil.ReadAll(resp.Body)
+	if err2 != nil {
+		log.Fatalln(err2)
+	}
+	log.Println(string(body))
 	lgp := new(Register)
 	email := c.QueryParam("email")
 	password := c.QueryParam("password")
@@ -126,6 +147,16 @@ func loginUser(c echo.Context) error {
 
 //User function
 func User(c echo.Context) error {
+	resp, err1 := http.Get("localhost:8081/api/v1/auth/users")
+	if err1 != nil {
+		log.Fatalln(err1)
+	}
+	defer resp.Body.Close()
+	body, err2 := ioutil.ReadAll(resp.Body)
+	if err2 != nil {
+		log.Fatalln(err2)
+	}
+	log.Println(string(body))
 	var user []Register
 
 	err := db.Find(&user)
@@ -135,6 +166,16 @@ func User(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 func userByID(c echo.Context) error {
+	resp, err1 := http.Get("localhost:8081/api/v1/auth/userid")
+	if err1 != nil {
+		log.Fatalln(err1)
+	}
+	defer resp.Body.Close()
+	body, err2 := ioutil.ReadAll(resp.Body)
+	if err2 != nil {
+		log.Fatalln(err2)
+	}
+	log.Println(string(body))
 	userr := new(Register)
 	ID := c.QueryParam("id")
 	err := db.Where("id = ? ", ID).First(&userr).Error
@@ -183,6 +224,7 @@ func whoAmI(c echo.Context) error {
 func main() {
 	initDb()
 	e := echo.New()
+
 	//jwt group//
 	jwtGroup := e.Group("api/v1/user/")
 	//middleware//
