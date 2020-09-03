@@ -183,6 +183,7 @@ func whoAmI(c echo.Context) error {
 func main() {
 	initDb()
 	e := echo.New()
+
 	//jwt group//
 	jwtGroup := e.Group("api/v1/user/")
 	//middleware//
@@ -196,9 +197,10 @@ func main() {
 	//router
 	e.POST("api/v1/user/register", regUser)
 	e.POST("api/v1/user/login_tkn", loginUser)
+
 	e.GET("api/v1/auth/users", User)
 	e.GET("api/v1/auth/userid", userByID)
 
-	e.Logger.Fatal(e.Start(":8082"))
+	e.Logger.Fatal(e.Start(":8081"))
 
 }
