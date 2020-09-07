@@ -1,22 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
-	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
-	"golang.org/x/crypto/bcrypt"
 )
-
-var jwtKey = []byte("secret")
 
 //Register struct//
 type Register struct {
@@ -27,14 +19,6 @@ type Register struct {
 	Phone string `json:"phone,omitempty" gorm:"type:varchar(20);" `
 	// Password     string `json:"password,omitempty" gorm:"type:varchar(100);"`
 	PasswordHash string `json:"passwordhash,omitempty" gorm:"type:varchar(100);" `
-}
-
-//Claims struct
-type Claims struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Phone string `json:"phone"`
-	jwt.StandardClaims
 }
 
 var db *gorm.DB
@@ -50,78 +34,6 @@ func initDb() {
 
 	db.Exec("use shawn")
 	db.AutoMigrate(&Register{})
-}
-func regUser(c echo.Context) error {
-	reg := new(Register)
-	defer c.Request().Body.Close()
-	err := json.NewDecoder(c.Request().Body).Decode(&reg)
-	if err != nil {
-		log.Printf("failed processing request: %s", err)
-		return echo.NewHTTPError(http.StatusInternalServerError)
-	}
-	log.Printf("Register : %#v", reg)
-	hash, err := bcrypt.GenerateFromPassword([]byte(reg.PasswordHash), bcrypt.DefaultCost)
-	reg.PasswordHash = string(hash)
-
-	if err != nil {
-		log.Println(err)
-	}
-	err = db.Table("registers").Create(&reg).Error
-	if err != nil {
-		log.Println(err)
-	}
-	return c.JSON(http.StatusCreated, &reg)
-}
-func loginUser(c echo.Context) error {
-	lgp := new(Register)
-	email := c.QueryParam("email")
-	password := c.QueryParam("password")
-	err := db.Where("email = ? ", email).First(&lgp).Error
-	if err != nil {
-		log.Println("db error")
-	}
-	// fmt.Printf("hash value: %s \n plain password: %s \n", lgp.PasswordHash, password)
-	err1 := bcrypt.CompareHashAndPassword([]byte(lgp.PasswordHash), []byte(password))
-
-	if err1 != nil {
-		log.Println(err1)
-	} else {
-
-		//create tooken
-
-		expirationTime := time.Now().Add(5 * time.Minute)
-		claims := &Claims{
-			Name:  lgp.Name,
-			Email: lgp.Email,
-			Phone: lgp.Phone,
-			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: expirationTime.Unix(),
-			},
-		}
-		tk := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tkn, err := tk.SignedString(jwtKey)
-		if err != nil {
-			log.Printf("failed processing request: %s", err)
-			return echo.NewHTTPError(http.StatusInternalServerError)
-		}
-		cookie := new(http.Cookie)
-		cookie.Name = "tooken"
-		cookie.Value = tkn
-		c.SetCookie(cookie)
-		if err != nil {
-			return err
-		}
-		return c.JSON(http.StatusOK, map[string]string{
-
-			"token": tkn,
-		})
-		// fmt.Println(lgp.Email,lgp.Password)
-		// return c.JSON(http.StatusCreated, lgp)
-
-	}
-
-	return echo.ErrUnauthorized
-
 }
 
 //User function
@@ -145,58 +57,11 @@ func userByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, userr)
 
 }
-func whoAmI(c echo.Context) error {
-	cookie, err := c.Cookie("tooken")
-	if err != nil {
-		return echo.ErrUnauthorized
-	}
-	tknStr := cookie.Value
-	claims := &Claims{}
-	tkn, err := jwt.ParseWithClaims(tknStr, claims, func(tooken *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
-	if err != nil {
-
-		if err == jwt.ErrSignatureInvalid {
-			return echo.ErrUnauthorized
-		}
-
-		return echo.NewHTTPError(http.StatusInternalServerError)
-	}
-	if !tkn.Valid {
-		return echo.ErrUnauthorized
-	}
-	user := new(Register)
-	err1 := db.Where("email = ? ", claims.Email).First(&user).Error
-	if err1 != nil {
-		log.Println("db error")
-	}
-	id := strconv.FormatInt(user.ID, 10)
-	return c.JSON(http.StatusOK, map[string]string{
-
-		"id":    id,
-		"name":  user.Name,
-		"email": user.Email,
-		"phone": user.Phone,
-	})
-}
 func main() {
 	initDb()
 	e := echo.New()
 
-	//jwt group//
-	jwtGroup := e.Group("api/v1/user/")
-	//middleware//
-	jwtGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
-		SigningMethod: "HS256",
-		SigningKey:    []byte("secret"),
-	}))
-
-	jwtGroup.POST("/whoAmI", whoAmI)
-
 	//router
-	e.POST("api/v1/user/register", regUser)
-	e.POST("api/v1/user/login_tkn", loginUser)
 
 	e.GET("api/v1/auth/users", User)
 	e.GET("api/v1/auth/userid", userByID)

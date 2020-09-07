@@ -146,46 +146,66 @@ func loginUser(c echo.Context) error {
 }
 
 //User function
-func User(c echo.Context) error {
-	resp, err1 := http.Get("localhost:8081/api/v1/auth/users")
-	if err1 != nil {
-		log.Fatalln(err1)
+func User(c echo.Context) (err error) {
+	u := new(Register)
+	if err = c.Bind(u); err != nil {
+		return
 	}
-	defer resp.Body.Close()
-	body, err2 := ioutil.ReadAll(resp.Body)
-	if err2 != nil {
-		log.Fatalln(err2)
-	}
-	log.Println(string(body))
-	var user []Register
-
-	err := db.Find(&user)
-	if err != nil {
-		log.Println(err)
-	}
-	return c.JSON(http.StatusOK, user)
+	return c.JSON(http.StatusOK, u)
 }
-func userByID(c echo.Context) error {
-	resp, err1 := http.Get("localhost:8081/api/v1/auth/userid")
-	if err1 != nil {
-		log.Fatalln(err1)
-	}
-	defer resp.Body.Close()
-	body, err2 := ioutil.ReadAll(resp.Body)
-	if err2 != nil {
-		log.Fatalln(err2)
-	}
-	log.Println(string(body))
-	userr := new(Register)
-	ID := c.QueryParam("id")
-	err := db.Where("id = ? ", ID).First(&userr).Error
 
-	if err != nil {
-		log.Println(err)
-	}
-	return c.JSON(http.StatusOK, userr)
+// //User func
+// func User(c echo.Context) error {
 
-}
+// 	return c.Redirect(http.StatusMovedPermanently, "localhost:8081/api/v1/auth/users")
+// }
+
+// func User(c echo.Context) error {
+// 	// userr := new(Register)
+
+// 	// defer c.Request().Body.Close()
+// 	// // resp, err1 := http.Get("localhost:8081/api/v1/auth/users")
+// 	// // if err1 != nil {
+// 	// // 	log.Fatalln(err1)
+// 	// // }
+// 	// body, err2 := ioutil.ReadAll(c.Request().Body)
+// 	// if err2 != nil {
+// 	// 	log.Fatalln(err2)
+// 	// 	return c.String(http.StatusInternalServerError, "")
+// 	// }
+// 	// err2 = json.Unmarshal(body, &userr)
+// 	// if err2 != nil {
+// 	// 	log.Printf("faild unmarshl: %s", err2)
+
+// 	// 	return c.String(http.StatusInternalServerError, "")
+// 	// }
+// 	// log.Printf("%#v", userr)
+// 	// return c.String(http.StatusOK, "successful")
+// 	// Handler
+
+// 	u := new(Register)
+// 	if err := c.Bind(u); err != nil {
+// 		return err
+// 	}
+// 	return c.JSON(http.StatusOK, u)
+
+// }
+
+// func userByID(c echo.Context) error {
+
+// 	e := echo.New()
+// 	resp, err1 := e.Get("localhost:8081/api/v1/auth/userid?id=7")
+// 	if err1 != nil {
+// 		log.Fatalln(err1)
+// 	}
+// 	defer resp.Body.Close()
+// 	body, err2 := ioutil.ReadAll(resp.Body)
+// 	if err2 != nil {
+// 		log.Fatalln(err2)
+// 	}
+// 	log.Println(string(body))
+// 	return nil
+// }
 func whoAmI(c echo.Context) error {
 	cookie, err := c.Cookie("tooken")
 	if err != nil {
@@ -239,8 +259,8 @@ func main() {
 	e.POST("api/v1/user/register", regUser)
 	e.POST("api/v1/user/login_tkn", loginUser)
 	e.GET("api/v1/auth/users", User)
-	e.GET("api/v1/auth/userid", userByID)
-
+	// e.GET("api/v1/auth/userid", userByID)
+	//http://localhost:8081/api/v1/auth/users
 	e.Logger.Fatal(e.Start(":8082"))
 
 }

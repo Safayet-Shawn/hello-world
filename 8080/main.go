@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -125,27 +124,6 @@ func loginUser(c echo.Context) error {
 
 }
 
-//User function
-func User(c echo.Context) error {
-	var user []Register
-
-	err := db.Find(&user)
-	if err != nil {
-		log.Println(err)
-	}
-	return c.JSON(http.StatusOK, user)
-}
-func userByID(c echo.Context) error {
-	userr := new(Register)
-	ID := c.QueryParam("id")
-	err := db.Where("id = ? ", ID).First(&userr).Error
-
-	if err != nil {
-		log.Println(err)
-	}
-	return c.JSON(http.StatusOK, userr)
-
-}
 func whoAmI(c echo.Context) error {
 	cookie, err := c.Cookie("tooken")
 	if err != nil {
@@ -184,10 +162,7 @@ func whoAmI(c echo.Context) error {
 func main() {
 	initDb()
 	e := echo.New()
-	wg := new(sync.WaitGroup)
 
-	// add two goroutines to `wg` WaitGroup
-	wg.Add(3)
 	//jwt group//
 	jwtGroup := e.Group("api/v1/user/")
 	//middleware//
@@ -201,9 +176,6 @@ func main() {
 	//router
 	e.POST("api/v1/user/register", regUser)
 	e.POST("api/v1/user/login_tkn", loginUser)
-
-	e.GET("api/v1/auth/users", User)
-	e.GET("api/v1/auth/userid", userByID)
 
 	e.Logger.Fatal(e.Start(":8080"))
 
