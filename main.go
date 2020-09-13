@@ -29,6 +29,7 @@ func Join(str ...string) string {
 }
 func handleAll(c echo.Context) error {
 	req := c.Request()
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
 	url := req.URL
 	path := url.Path
 	log.Printf("url %v", path)
@@ -38,11 +39,12 @@ func handleAll(c echo.Context) error {
 		// if req.Method == "GET" {
 		host := "http://localhost:8081"
 		mainURL := Join(host, url.String()[1:])
+		// fmt.Println(mainURL)
 		newReq, err := http.NewRequest(req.Method, mainURL, req.Body)
 		if err != nil {
 			return err
 		}
-		fmt.Println(newReq)
+		// fmt.Println(newReq)
 		client := &http.Client{}
 		rsp, err := client.Do(newReq)
 		if err != nil {
@@ -54,29 +56,40 @@ func handleAll(c echo.Context) error {
 			log.Fatalln(err)
 		}
 		// log.Println(string(b))
-		fmt.Printf("%s\n", b)
 
+		return c.String(http.StatusOK, string(b))
 	}
 	if str[3] == "user" {
+
 		host := "http://localhost:8080"
 		mainURL := Join(host, url.String()[1:])
+		// fmt.Println(mainURL)
 		newReq, err := http.NewRequest(req.Method, mainURL, req.Body)
 		if err != nil {
 			return err
 		}
-		fmt.Println(newReq)
+		// fmt.Println(newReq)
+		req1 := c.Request()
+
+		newReq.Header = req1.Header
+		newReq.Header.Add("Accept", "application/json")
+		newReq.Header.Add("Content-Type", "application/json")
+		fmt.Println("header=>", newReq.Header)
 		client := &http.Client{}
 		rsp, err := client.Do(newReq)
 		if err != nil {
 			log.Fatalln(err)
 		}
+		c.Response().WriteHeader(http.StatusOK)
 		defer rsp.Body.Close()
+
 		b, err := ioutil.ReadAll(rsp.Body)
 		if err != nil {
 			log.Fatalln(err)
+
 		}
-		// log.Println(string(b))
-		fmt.Printf("%s\n", b)
+		return c.String(http.StatusOK, string(b))
+
 	}
 	return nil
 }

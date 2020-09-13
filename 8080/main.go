@@ -29,6 +29,11 @@ type Register struct {
 	PasswordHash string `json:"passwordhash,omitempty" gorm:"type:varchar(100);" `
 }
 
+//Login Styuct//
+type Login struct {
+	Token string `json:"token"`
+}
+
 //Claims struct
 type Claims struct {
 	Name  string `json:"name"`
@@ -85,63 +90,74 @@ func loginUser(c echo.Context) error {
 
 	if err1 != nil {
 		log.Println(err1)
-	} else {
-
-		//create tooken
-
-		expirationTime := time.Now().Add(5 * time.Minute)
-		claims := &Claims{
-			Name:  lgp.Name,
-			Email: lgp.Email,
-			Phone: lgp.Phone,
-			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: expirationTime.Unix(),
-			},
-		}
-		tk := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tkn, err := tk.SignedString(jwtKey)
-		if err != nil {
-			log.Printf("failed processing request: %s", err)
-			return echo.NewHTTPError(http.StatusInternalServerError)
-		}
-		cookie := new(http.Cookie)
-		cookie.Name = "tooken"
-		cookie.Value = tkn
-		c.SetCookie(cookie)
-		if err != nil {
-			return err
-		}
-		return c.JSON(http.StatusOK, map[string]string{
-
-			"token": tkn,
-		})
-		// fmt.Println(lgp.Email,lgp.Password)
-		// return c.JSON(http.StatusCreated, lgp)
-
 	}
 
-	return echo.ErrUnauthorized
+	//create tooken
+
+	expirationTime := time.Now().Add(5 * time.Minute)
+	claims := &Claims{
+		Name:  lgp.Name,
+		Email: lgp.Email,
+		Phone: lgp.Phone,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+		},
+	}
+	tk := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tkn, err := tk.SignedString(jwtKey)
+	if err != nil {
+		log.Printf("failed processing request: %s", err)
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	cookie := new(http.Cookie)
+	cookie.Name = "tooken"
+	cookie.Value = tkn
+	c.SetCookie(cookie)
+	if err != nil {
+		return err
+	}
+	u := &Login{
+		Token: tkn,
+	}
+	// c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
+	// c.Response().WriteHeader(http.StatusOK)
+	// return json.NewEncoder(c.Response()).Encode(u)
+	// return tkn
+	// return c.JSON(http.StatusCreated, &lg)
+	// fmt.Println(lgp.Email,lgp.Password)
+	return c.JSON(http.StatusOK, u)
+
+	// }
+
+	// return c.JSON(http.StatusOK, login)
 
 }
-
 func whoAmI(c echo.Context) error {
+
 	cookie, err := c.Cookie("tooken")
+	fmt.Println(cookie)
+	fmt.Println(cookie)
+	fmt.Println("ghjkssk")
 	if err != nil {
-		return echo.ErrUnauthorized
+		return err
 	}
 	tknStr := cookie.Value
+
 	claims := &Claims{}
+	fmt.Println(tknStr, claims)
 	tkn, err := jwt.ParseWithClaims(tknStr, claims, func(tooken *jwt.Token) (interface{}, error) {
 		return jwtKey, nil
 	})
 	if err != nil {
 
 		if err == jwt.ErrSignatureInvalid {
+
 			return echo.ErrUnauthorized
 		}
 
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
+	fmt.Println(tkn)
 	if !tkn.Valid {
 		return echo.ErrUnauthorized
 	}
@@ -164,7 +180,7 @@ func main() {
 	e := echo.New()
 
 	//jwt group//
-	jwtGroup := e.Group("api/v1/user/")
+	jwtGroup := e.Group("api/v1/user")
 	//middleware//
 	jwtGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
 		SigningMethod: "HS256",
