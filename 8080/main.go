@@ -22,9 +22,9 @@ var jwtKey = []byte("secret")
 type Register struct {
 	// gorm.Model
 	ID    int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT;"`
-	Email string `json:"email,omitempty" gorm:"type:varchar(100);unique;" `
-	Name  string `json:"name,omitempty" gorm:"type:varchar(50);" `
-	Phone string `json:"phone,omitempty" gorm:"type:varchar(20);" `
+	Email string `json:"email,omitempty" gorm:"type:varchar(100);unique;" validate:"required ,email"`
+	Name  string `json:"name,omitempty" gorm:"type:varchar(50);" validate:"required" `
+	Phone string `json:"phone,omitempty" gorm:"type:varchar(20);" validate:"required,gte=10"`
 	// Password     string `json:"password,omitempty" gorm:"type:varchar(100);"`
 	PasswordHash string `json:"passwordhash,omitempty" gorm:"type:varchar(100);" `
 }
